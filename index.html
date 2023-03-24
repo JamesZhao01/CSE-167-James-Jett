@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>HW4 - Raytracing</title>
+    <style>
+      table {
+        display: inline-table;
+      }
+
+      td {
+        border: 1px solid black;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, 300px);
+        gap: 1em;
+      }
+
+      .grid > img {
+        max-width: 300px;
+        max-height: 300px;
+        display: block;
+        margin: auto;
+      }
+
+      body {
+        max-width: 1200px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h1>James Zhao, A15939512</h1>
+    <h1>Jett Bui, A15886425</h1>
+    <h2>HW4 - Raytracing</h2>
+    <a
+      href="https://raviucsdgroup.s3.amazonaws.com/hw3/30cc2e097d3cb4b2121b284efe0676ef/20230321003110/index.html"
+    >
+      https://raviucsdgroup.s3.amazonaws.com/hw3/30cc2e097d3cb4b2121b284efe0676ef/20230321003110/index.html
+    </a>
+    <hr />
+    <h2>Acceleration Structure Overview</h2>
+    <p>
+      Our acceleration structure involves an Octree that is performed over the
+      global-bounding box (union of bounding boxes of all primitives in scene),
+      with a threshold of 16 objects before and tree division is performed (e.x.
+      an undivided node needs at least 16 primitives to divide).
+    </p>
+    <ul>
+      <li>
+        Bounding boxes for triangles were computed by taking the coordinate-wise
+        minimums/maximums of all transformed vertices
+      </li>
+      <li>
+        Bounding boxes for spheres were computed using the matrix-representation
+        of a
+        <a href="https://cseweb.ucsd.edu/classes/wi23/cse252B-a/lec3.pdf"
+          >3d-hyperconic</a
+        >
+        and finding
+        <a href="https://tavianator.com/2014/ellipsoid_bounding_boxes.html"
+          >tangent-planes</a
+        >
+        using the (transformed) dual form of a 3d-hyperconic.
+      </li>
+    </ul>
+    <p>
+      Additionally, we also use an optimization that causes rays that miss the
+      entire scene bounding box to simply render a black pixel (background)
+    </p>
+    <p>
+      Though this is not intended to be our acceleration structure, we also use
+      OpenMP (and a compiler directive
+      <code>#pragma omp parallel for</code>) to render the scenes faster,
+      parallelizing our raycast for loop.
+    </p>
+    <p>
+      Timings can be found below for scene7.test, measured using
+      <code>std::chrono</code>. Rendering was done on a Windows 11 machine with
+      a AMD Ryzen 5 3600 CPU and NVIDIA RTX 3070ti GPU (for OpenMP).
+    </p>
+    <table>
+      <tr>
+        <td>Method</td>
+        <td>Scene 7 Rendering Time</td>
+      </tr>
+      <tr>
+        <td>
+          Without Acceleration Structure <br />
+          Without OpenMP Parallelization
+        </td>
+        <td>
+          <p>2723.158 seconds</p>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          With Acceleration Structure <br />
+          Without OpenMP Parallelization
+        </td>
+        <td>
+          <p>80.060 seconds</p>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          With Acceleration Structure <br />
+          With OpenMP Parallelization
+        </td>
+        <td>
+          <p>17.243 seconds</p>
+        </td>
+      </tr>
+    </table>
+    <hr />
+    <h2>Test Case Images</h2>
+    <hr />
+    <table>
+      <tr>
+        <td>Scene File</td>
+        <td>Our output</td>
+      </tr>
+      <tr>
+        <td>scene4-ambient</td>
+        <td>
+          <img src="out/gallery/scene4-ambient.png" width="200" alt="Missing" />
+        </td>
+      </tr>
+      <tr>
+        <td>scene4-diffuse</td>
+        <td>
+          <img src="out/gallery/scene4-diffuse.png" width="200" alt="Missing" />
+        </td>
+      </tr>
+      <tr>
+        <td>scene4-emission</td>
+        <td>
+          <img
+            src="out/gallery/scene4-emission.png"
+            width="200"
+            alt="Missing"
+          />
+        </td>
+      </tr>
+      <tr>
+        <td>scene4-specular</td>
+        <td>
+          <img
+            src="out/gallery/scene4-specular.png"
+            width="200"
+            alt="Missing"
+          />
+        </td>
+      </tr>
+    </table>
+    <table>
+      <tr>
+        <td>Scene File</td>
+        <td>Our output</td>
+      </tr>
+      <tr>
+        <td>scene5</td>
+        <td>
+          <img src="out/gallery/scene5.png" width="200" alt="Missing" />
+        </td>
+      </tr>
+      <tr>
+        <td>scene6</td>
+        <td>
+          <img src="out/gallery/scene6.png" width="200" alt="Missing" />
+        </td>
+      </tr>
+      <tr>
+        <td>scene7</td>
+        <td>
+          <img src="out/gallery/scene7.png" width="200" alt="Missing" />
+        </td>
+      </tr>
+    </table>
+    <hr />
+    <h2>Extra Credit Features</h2>
+    <hr />
+    <h3>Triangles with inteprolated Normals</h3>
+    <code>trinorm.test</code>
+    <p>
+      We specified ways to insert triangles with normals, using both the
+      specification in ucsd online (trinormal), as well as an alternative method
+      that allows one to specify a different order to triangles/normals
+      indexing. This interpolation is done by utilizing the barycentric
+      coordinates of the hit point, and interpolating the normals the same
+      amount.
+    </p>
+    <img src="out/gallery/trinorm.png" width="300" />
+    <h3>Texture Mapping</h3>
+    <p>
+      We implemented texture mapping for ambient, emission, diffuse, specular,
+      and normals. This is done by allowing the user to specify uv texture
+      coordinates similar to vertices/normals, and textured-triangles can also
+      be specified. We also implemented a command to load texture images. Only
+      triangles can be textured.
+    </p>
+    <p>
+      The interpolation we use is not perspective-corrected, and only bilinear
+      interpolation or nearest-neighbor interpolation is used. (no mip-mapping
+      or averaging over texture)
+    </p>
+    <p>
+      Normal mapping was doing by generating a Tangent-Bitangent-Normal change
+      of basis, following a guide produced by opengl.
+      <a href="https://learnopengl.com/Advanced-Lighting/Normal-Mapping"
+        >Link</a
+      >
+    </p>
+    <table>
+      <tr>
+        <td>
+          <p>Ambient + Emission</p>
+          <code>texture-ambient.test</code>
+          <br />
+          <img src="out/gallery/texture-ambient.png" width="300" />
+        </td>
+        <td>
+          <p>Diffuse</p>
+          <code>texture-diffuse.test</code>
+          <br />
+          <img src="out/gallery/texture-diffuse.png" width="300" />
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <p>Specular</p>
+          <code>texture-specular.test</code>
+          <br />
+          <img src="out/gallery/texture-specular.png" width="300" />
+        </td>
+        <td>
+          <p>Normal</p>
+          <code>texture-normal.test</code>
+          <br />
+          <img src="out/gallery/texture-normal.png" width="300" />
+        </td>
+      </tr>
+    </table>
+    <h3>Environment Mapping</h3>
+    <p>
+      We also implemented an environment cube-map to obtain a background color
+      that is sampled in case a ray misses all primitives. Our convention uses
+      x-axis as forward, y-axis as left, and z-axis as up. (hard-coded)
+    </p>
+    <ul>
+      <li>
+        The texture-uv coordinate was first computed by projecting a ray
+        direction to an l-infinity 'unit' cube ([-1, 1] x [-1, 1] x [-1, 1]).
+        This was done by dividing the ray direction by the max(abs(x), abs(y),
+        abs(z)).
+      </li>
+      <li>
+        The face that is hit on the cube is determined by which dimension has a
+        value of -1 or 1, as well as the sign (e.x. (1, 0.5, 0.5) would hit the
+        +x side, (-1, 0.5, 0.5) would hit the -x side). There is guaranteed to
+        be at least one coordinate with abs(d) = 1 since we project the ray to
+        the l-infinity unit cube.
+      </li>
+      <li>
+        Each face is mapped to a position on the cubemap texture. These are
+        hard-coded and manually determined. The struct containing this
+        information is roughly defined as the following format, and a cube map
+        consists of 6 of these structs (+x,+y,+z,-x,-y,-z). We using the
+        convention that u-v are centered on the bottom-left, with u going
+        horizontally and v going vertically. When interpolating, we transform
+        these uv's to a coordinate system that matches our image-buffer
+        convention (origin = top-left, x = down vertically, y = right
+        horizontally)<br />
+        <code>
+          struct cf { // cf = cube face<br />
+          &nbsp;&nbsp;float bl_u; // texture bottom-left u value<br />
+          &nbsp;&nbsp;float bl_v; // texture bottom-left v value<br />
+          &nbsp;&nbsp;int dim_u; // the dimension correpsonding to positive u
+          (0, 1, 2)<br />
+          &nbsp;&nbsp;int inc_u; // whether the dimension is positive or
+          negative<br />
+          &nbsp;&nbsp;int dim_v; // same as dim_u but for v<br />
+          &nbsp;&nbsp;int inc_v; // same as inc_u but for v<br />
+          };
+        </code>
+        <br />
+        <img src="out/gallery/math.png" width="450px" />
+      </li>
+      <li>
+        After determining the direction, the linear range of the u/v dimensions
+        are linearlly transformed from [-1,+1] to [0,1] (flipping the input
+        value sign if inc_u or inc_v is negative), and then these are divided by
+        4 if horizontal, or 3 if vertical (since the cubemap consists of a 3x4
+        grid of squares, so each square takes up a width of width/4 or 0.25 in
+        u-space and height/3 or 0.33 in v-space)
+      </li>
+    </ul>
+    <table>
+      <tr>
+        <td>
+          <p>Cubemap (Wikipedia One)</p>
+          <p><code>enviro.test</code></p>
+          <img src="out/gallery/enviro.png" width="300" />
+        </td>
+        <td>
+          <p>Peaceful Cubemap</p>
+          <p><code>enviro_peaceful.test</code></p>
+          <img src="out/gallery/enviro_peaceful.png" width="300" />
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <p>Hellfire</p>
+          <p><code>enviro_hellfire.test</code></p>
+          <img src="out/gallery/enviro_hellfire.png" width="300" />
+        </td>
+        <td>
+          <p>Mountain</p>
+          <p><code>enviro_mountain.test</code></p>
+          <img src="out/gallery/enviro_mountain.png" width="300" />
+        </td>
+      </tr>
+    </table>
+    <h3>Anti-Aliasing</h3>
+    <p>
+      In leveraging more optimized rendering times, the anti-aliasing process is
+      implemented by iterating over a specified number of samples for each
+      pixel. For each sample, the pixel coordinates are randomly offset by a
+      value, producing slightly different views of the scene from each sample,
+      which can help reduce the visual artifacts.
+    </p>
+    <table>
+      <tr>
+        <th>No sampling</th>
+        <th>16 samples</th>
+        <th>64 samples</th>
+      </tr>
+      <tr>
+        <td>
+          <img src="out/gallery/teapot-1x.png" width="300" />
+        </td>
+        <td>
+          <img src="out/gallery/teapot-16x.png" width="300" />
+        </td>
+        <td>
+          <img src="out/gallery/teapot-64x.png" width="300" />
+        </td>
+      </tr>
+      <tr>
+        <td style="overflow: hidden">
+          <img
+            src="out/gallery/teapot-1x.png"
+            width="300"
+            style="transform: scale(2)"
+          />
+        </td>
+        <td style="overflow: hidden">
+          <img
+            src="out/gallery/teapot-16x.png"
+            width="300"
+            style="transform: scale(2)"
+          />
+        </td>
+        <td style="overflow: hidden">
+          <img
+            src="out/gallery/teapot-64x.png"
+            width="300"
+            style="transform: scale(2)"
+          />
+        </td>
+      </tr>
+      <tr>
+        <td style="overflow: hidden">
+          <img
+            src="out/gallery/teapot-1x.png"
+            width="300"
+            style="transform: scale(3)"
+          />
+        </td>
+        <td style="overflow: hidden">
+          <img
+            src="out/gallery/teapot-16x.png"
+            width="300"
+            style="transform: scale(3)"
+          />
+        </td>
+        <td style="overflow: hidden">
+          <img
+            src="out/gallery/teapot-64x.png"
+            width="300"
+            style="transform: scale(3)"
+          />
+        </td>
+      </tr>
+    </table>
+    <h3>Area Lighting & Soft Shadows</h3>
+    <p>
+      Area lights allow for more realistic illumination of the scene through
+      defined u,v-vector offsets from the corner of the light (as inspired from
+      <a href="http://raytracerchallenge.com/bonus/area-light.html"
+        >The Ray Tracer Challenge</a
+      >). While point lights produce hard shadows, area lights allow for softer
+      shadows through sampling of the offsets.
+    </p>
+    <p>
+      Below is a comparison of a point light and area light, defined as the
+      following:
+    </p>
+    <ul>
+      <li>Point Light: Located at (1,1,1)</li>
+      <li>
+        Area Light: Corner at (1,1,1), u-vector is (0.0625,0,0) and v-vector is
+        (0,0,0.0625), 16 offsets in both the u and v direction (256 samples
+        total)
+      </li>
+    </ul>
+
+    <table>
+      <tr>
+        <th>Point Light</th>
+        <th>Area Light</th>
+      </tr>
+      <tr>
+        <td>
+          <img src="out/gallery/shadows-point.png" width="300" />
+        </td>
+        <td>
+          <img src="out/gallery/shadows-area.png" width="300" />
+        </td>
+      </tr>
+    </table>
+    <h3>Material Refraction</h3>
+    <p>
+      Material properties also include a transparency and refraction index,
+      which allows for the simulation of refractive materials. Refraction is
+      implemented by using Snell's Law to determine the direction of the
+      refracted ray, and the Fresnel equations to determine the amount of
+      reflection and refraction.
+    </p>
+    <table>
+      <tr>
+        <th>refraction.test</th>
+        <th>scene7-refract.test</th>
+      </tr>
+      <tr>
+        <td>
+          <img src="out/gallery/refraction.png" width="300" />
+        </td>
+        <td>
+          <img src="out/gallery/scene7-refract.png" width="300" />
+        </td>
+      </tr>
+    </table>
+    <hr />
+    <h2>Gallery</h2>
+    <hr />
+    <div class="grid">
+      <img src="out/gallery/teapot-64x.png" />
+      <img src="out/gallery/teapot-mountain.png" />
+      <img src="out/gallery/teapot-mountain2.png" />
+      <img src="out/gallery/circlegrid.png" />
+      <img src="out/gallery/strawberry.png" />
+      <img src="out/gallery/cataclysmic.png" />
+      <img src="out/gallery/thunderous_pulse.png" />
+      <img src="out/gallery/normal.png" />
+      <img src="out/gallery/scene7.png" />
+      <img src="out/gallery/amos.png" />
+    </div>
+  </body>
+</html>
